@@ -9,19 +9,45 @@
 # URL: http://www.xxhjkl.me/?p=404
 #
 
-apt-get install gcc automake autoconf libtool make screen -y
+apt-get update
+apt-get install gcc automake autoconf libtool make screen curl -y
 
-wget http://www.rarlab.com/rar/rarlinux-x64-5.3.0.tar.gz
-tar -zxvf rarlinux-x64-5.3.0.tar.gz
-cd rar
-make
+# 提高文件打开数
 
-cd /home
+sed -i '/^fs.file-max.*/'d /etc/sysctl.conf
+sed -i '/^fs.nr_open.*/'d /etc/sysctl.conf
+echo "fs.file-max = 1048576" >> /etc/sysctl.conf
+echo "fs.nr_open = 1048576" >> /etc/sysctl.conf
 
-wget http://appdown.rrys.tv/rrshareweb_linux.rar
-unrar x rrshareweb_linux.rar
+sed -i '/.*nofile.*/'d /etc/security/limits.conf
+sed -i '/.*nproc.*/'d /etc/security/limits.conf
+
+cat>>/etc/security/limits.conf<<EOF
+* - nofile 1048575
+* - nproc 1048575
+root soft nofile 1048574
+root hard nofile 1048574
+$ANUSER hard nofile 1048573
+$ANUSER soft nofile 1048573
+EOF
+
+sed -i '/^DefaultLimitNOFILE.*/'d /etc/systemd/system.conf
+sed -i '/^DefaultLimitNPROC.*/'d /etc/systemd/system.conf
+echo "DefaultLimitNOFILE=999998" >> /etc/systemd/system.conf
+echo "DefaultLimitNPROC=999998" >> /etc/systemd/system.conf
+
+# 开启bbr
+modprobe tcp_bbr
+echo "tcp_bbr" >> /etc/modules-load.d/modules.conf
+echo "net.core.default_qdisc=fq" >> /etc/sysctl.conf
+echo "net.ipv4.tcp_congestion_control=bbr" >> /etc/sysctl.conf
+sysctl -p
+
+
+# 安装人人影视客户端
+wget http://appdown.rrysapp.com/rrshareweb_centos7.tar.gz
 tar -zxvf rrshareweb_centos7.tar.gz
-
+# 创建开机启动脚本
 cat >> /etc/rc.local << "EOF"
 #!/bin/sh -e
 nohup /home/rrshareweb/rrshareweb &
@@ -31,6 +57,6 @@ EOF
 chmod +x /etc/rc.local 
 systemctl start rc-local
 
-mkdir -p /opt/work/store
-
-reboot
+nohup /home/rrshareweb/rrshareweb &
+# 检查是否开启bbr
+lsmod | grep bbr
