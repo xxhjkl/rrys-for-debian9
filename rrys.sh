@@ -47,10 +47,30 @@ sysctl -p
 # 安装人人影视客户端
 wget http://appdown.rrysapp.com/rrshareweb_centos7.tar.gz
 tar -zxvf rrshareweb_centos7.tar.gz
+
+# 建立服务 systemctl (start/stop/status/restart) renren
+cat > /etc/systemd/system/renren.service <<EOF
+[Unit]
+Description=RenRen server
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+PIDFile=/var/run/renren.pid
+ExecStart=/home/rrshareweb/rrshareweb
+RestartPreventExitStatus=23
+Restart=always
+User=root
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
 # 创建开机启动脚本
 cat >> /etc/rc.local << "EOF"
 #!/bin/sh -e
-nohup /home/rrshareweb/rrshareweb &
+systemctl start renren
 exit 0
 EOF
 
